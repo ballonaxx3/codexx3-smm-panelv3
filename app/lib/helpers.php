@@ -4,60 +4,10 @@ function money(float|int|string $amount): string { return '$'.number_format((flo
 function redirect(string $path): void { header('Location: '.$path); exit; }
 function log_action(string $msg): void { @file_put_contents(__DIR__.'/../../logs/actions.log', '['.date('Y-m-d H:i:s').'] '.$msg.PHP_EOL, FILE_APPEND); }
 function calc_price(float $rate, int $quantity): float { return round(($rate * $quantity) / 1000, 4); }
-
-function db_one(Database $db, string $sql, array $params = []): array {
-    $stmt = $db->query($sql, $params);
-    if (!$stmt) { return []; }
-    $row = $stmt->fetch();
-    return is_array($row) ? $row : [];
-}
-
-function db_all(Database $db, string $sql, array $params = []): array {
-    $stmt = $db->query($sql, $params);
-    if (!$stmt) { return []; }
-    $rows = $stmt->fetchAll();
-    return is_array($rows) ? $rows : [];
-}
-
-function current_user(Database $db): array {
-    $id = (int)($_SESSION['user_id'] ?? 0);
-    return db_one($db, 'SELECT id,email,balance,is_admin FROM users WHERE id=?', [$id]);
-}
-
-function panel_header(string $title, string $active, array $user = []): void {
-    $isAdmin = (int)($user['is_admin'] ?? $_SESSION['is_admin'] ?? 0) === 1;
-    $email = $user['email'] ?? '';
-    ?>
-    <!doctype html>
-    <html lang="es">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1">
-        <title><?= e($title) ?> | Codexx3 SMM</title>
-        <link rel="stylesheet" href="/assets/css/style.css">
-    </head>
-    <body>
-    <div class="panel">
-        <aside class="sidebar">
-            <div class="side-logo">⚡ Codexx3</div>
-            <a class="<?= $active==='dashboard'?'active':'' ?>" href="/dashboard.php">📊 Dashboard</a>
-            <a class="<?= $active==='order'?'active':'' ?>" href="/order.php">🛒 Nuevo pedido</a>
-            <a class="<?= $active==='orders'?'active':'' ?>" href="/orders.php">📦 Mis pedidos</a>
-            <a class="<?= $active==='services'?'active':'' ?>" href="/services.php">📋 Servicios</a>
-            <a class="<?= $active==='deposits'?'active':'' ?>" href="/deposits.php">💳 Recargas</a>
-            <a class="<?= $active==='tickets'?'active':'' ?>" href="/tickets.php">🎫 Tickets</a>
-            <?php if($isAdmin): ?><a class="<?= $active==='admin'?'active':'' ?>" href="/admin.php">👑 Admin</a><?php endif; ?>
-            <a href="https://wa.me/50361605896" target="_blank" rel="noopener">💬 Soporte</a>
-            <a href="/logout.php">🚪 Salir</a>
-            <div class="side-user">
-                <span>Sesión</span>
-                <strong><?= e($email) ?></strong>
-            </div>
-        </aside>
-        <main class="content">
-    <?php
-}
-
-function panel_footer(): void {
-    echo '</main></div></body></html>';
-}
+function db_one(Database $db, string $sql, array $params = []): array { $stmt=$db->query($sql,$params); if(!$stmt){return [];} $row=$stmt->fetch(); return is_array($row)?$row:[]; }
+function db_all(Database $db, string $sql, array $params = []): array { $stmt=$db->query($sql,$params); if(!$stmt){return [];} $rows=$stmt->fetchAll(); return is_array($rows)?$rows:[]; }
+function current_user(Database $db): array { $id=(int)($_SESSION['user_id']??0); return db_one($db,'SELECT id,email,balance,is_admin FROM users WHERE id=?',[$id]); }
+function panel_header(string $title,string $active,array $user=[]): void { $isAdmin=(int)($user['is_admin']??$_SESSION['is_admin']??0)===1; $email=$user['email']??''; ?>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=e($title)?> | Codexx3 SMM</title><link rel="stylesheet" href="/assets/css/style.css"></head><body><div class="panel"><aside class="sidebar"><div class="side-logo">⚡ Codexx3</div><a class="<?=$active==='dashboard'?'active':''?>" href="/dashboard.php">📊 Dashboard</a><a class="<?=$active==='order'?'active':''?>" href="/order.php">🛒 Nuevo pedido</a><a class="<?=$active==='orders'?'active':''?>" href="/orders.php">📦 Mis pedidos</a><a class="<?=$active==='services'?'active':''?>" href="/services.php">📋 Servicios</a><a class="<?=$active==='deposits'?'active':''?>" href="/deposits.php">💳 Recargas</a><a class="<?=$active==='tickets'?'active':''?>" href="/tickets.php">🎫 Tickets</a><?php if($isAdmin): ?><div class="side-section">ADMIN</div><a class="<?=$active==='admin'?'active':''?>" href="/admin.php">👑 Resumen</a><a href="/admin_users.php">👤 Usuarios</a><a href="/admin_services.php">📋 Servicios admin</a><a href="/admin_providers.php">🔌 Providers API</a><a href="/admin_orders.php">📦 Pedidos admin</a><a href="/admin_deposits.php">💳 Recargas admin</a><a href="/admin_tickets.php">🎫 Tickets admin</a><?php endif; ?><a href="https://wa.me/50361605896" target="_blank" rel="noopener">💬 Soporte</a><a href="/logout.php">🚪 Salir</a><div class="side-user"><span>Sesión</span><strong><?=e($email)?></strong></div></aside><main class="content">
+<?php }
+function panel_footer(): void { echo '</main></div></body></html>'; }
