@@ -2,6 +2,7 @@
 require_once __DIR__.'/../app/config/session.php';
 require_once __DIR__.'/../app/config/database.php';
 require_once __DIR__.'/../app/lib/helpers.php';
+require_once __DIR__.'/../app/lib/provider_api.php';
 requireLogin();
 
 $db = new Database();
@@ -30,7 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'La cantidad máxima para este servicio es '.(int)$service['max'].'.';
     } else {
         $price = calc_price((float)$service['rate'], $qty);
+        $cost = calc_price((float)($service['cost_rate'] ?? 0), $qty);
+        $profit = round($price - $cost, 4);
         $userId = (int)($user['id'] ?? $_SESSION['user_id']);
+        $orderId = 0;
 
         try {
             $pdo = $db->pdo();
@@ -47,10 +51,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $newBalance = round($balance - $price, 4);
                 $pdo->prepare('UPDATE users SET balance=? WHERE id=?')->execute([$newBalance, $userId]);
-                $pdo->prepare('INSERT INTO orders (user_id,service_id,link,quantity,charge,status) VALUES (?,?,?,?,?,?)')
-                    ->execute([$userId, $service_id, $link, $qty, $price, 'pending']);
+                $pdo->prepare('INSERT INTO orders (user_id,service_id,link,quantity,charge,profit,status) VALUES (?,?,?,?,?,?,?)')
+                    ->execute([$userId, $service_id, $link, $qty, $price, $profit, 'pending']);
+                $orderId = (int)$pdo->lastInsertId();
                 $pdo->commit();
+
+                $providerResult = send_order_to_provider($db, $orderId);
                 $msg = 'Pedido creado correctamente. Se descontó '.money($price).' de tu balance.';
+                if (!($providerResult['success'] ?? false)) {
+                    $msg .= ' Quedó pendiente de proveedor: '.($providerResult['error'] ?? 'sin proveedor configurado');
+                }
                 $user = current_user($db);
             }
         } catch (Throwable $e) {
