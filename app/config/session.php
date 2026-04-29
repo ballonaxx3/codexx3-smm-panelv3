@@ -1,5 +1,19 @@
 <?php
+$secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
 if (session_status() === PHP_SESSION_NONE) {
+    session_name('CODEXX3SESSID');
+    session_set_cookie_params([
+        'lifetime' => 60 * 60 * 24 * 7,
+        'path' => '/',
+        'domain' => '',
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    ini_set('session.gc_maxlifetime', (string)(60 * 60 * 24 * 7));
+    ini_set('session.cookie_lifetime', (string)(60 * 60 * 24 * 7));
     session_start();
 }
 
