@@ -83,6 +83,20 @@ CREATE TABLE IF NOT EXISTS deposits (
   CONSTRAINT fk_deposits_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS tickets (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  subject VARCHAR(190) NOT NULL,
+  message TEXT NOT NULL,
+  admin_reply TEXT NULL,
+  status ENUM('open','closed') NOT NULL DEFAULT 'open',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_tickets_user (user_id),
+  INDEX idx_tickets_status (status),
+  CONSTRAINT fk_tickets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS coupons (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   code VARCHAR(60) NOT NULL UNIQUE,
@@ -115,7 +129,6 @@ INSERT INTO users (email, password, balance, is_admin, status)
 VALUES ('admin@codexx3.com', '$2y$10$0aKT4cYuxbqG8KbcIYzIxOxHgONMqczBteGSjYgZvGp5jUjLjMCzG', 100.0000, 1, 'active')
 ON DUPLICATE KEY UPDATE is_admin=1;
 
--- Datos de ejemplo seguros: debes cambiar api_url y api_key por tu proveedor real.
 INSERT INTO providers (name, api_url, api_key, active)
 VALUES ('Proveedor Demo', 'https://example.com/api/v2', 'CAMBIA_ESTA_API_KEY', 0)
 ON DUPLICATE KEY UPDATE name=name;
