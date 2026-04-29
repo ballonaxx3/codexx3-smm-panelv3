@@ -1,8 +1,0 @@
-[phases.setup]
-nixPkgs = ["php82Packages.php"]
-
-[phases.build]
-cmds = ["mkdir -p logs"]
-
-[start]
-cmd = "php -S 0.0.0.0:$PORT -t public"
