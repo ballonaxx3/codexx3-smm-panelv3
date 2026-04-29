@@ -1,5 +1,5 @@
 [phases.setup]
-aptPkgs = ["php", "php-mysql"]
+nixPkgs = ["php82", "php82Extensions.pdo_mysql"]
 
 [phases.build]
 cmds = ["mkdir -p logs"]
