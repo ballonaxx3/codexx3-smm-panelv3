@@ -42,8 +42,10 @@ function panel_header(string $title, string $active, array $user = []): void {
             <div class="side-logo">⚡ Codexx3</div>
             <a class="<?= $active==='dashboard'?'active':'' ?>" href="/dashboard.php">📊 Dashboard</a>
             <a class="<?= $active==='order'?'active':'' ?>" href="/order.php">🛒 Nuevo pedido</a>
+            <a class="<?= $active==='orders'?'active':'' ?>" href="/orders.php">📦 Mis pedidos</a>
             <a class="<?= $active==='services'?'active':'' ?>" href="/services.php">📋 Servicios</a>
             <a class="<?= $active==='deposits'?'active':'' ?>" href="/deposits.php">💳 Recargas</a>
+            <a class="<?= $active==='tickets'?'active':'' ?>" href="/tickets.php">🎫 Tickets</a>
             <?php if($isAdmin): ?><a class="<?= $active==='admin'?'active':'' ?>" href="/admin.php">👑 Admin</a><?php endif; ?>
             <a href="https://wa.me/50361605896" target="_blank" rel="noopener">💬 Soporte</a>
             <a href="/logout.php">🚪 Salir</a>
