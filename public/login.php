@@ -9,4 +9,50 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $error='Credenciales incorrectas';
 }
 ?>
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login</title><link rel="stylesheet" href="/assets/css/style.css"></head><body><main class="hero"><form class="card" method="post"><h1>Login</h1><?php if($error):?><p class="error"><?=htmlspecialchars($error)?></p><?php endif;?><input name="email" type="email" placeholder="Email" required><input name="password" type="password" placeholder="Password" required><button class="btn" type="submit">Entrar</button><a href="/register.php">Crear cuenta</a></form></main></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login - Codexx3</title>
+<link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+
+<div class="auth-page">
+
+    <div class="auth-brand">
+        <h1>Codexx3</h1>
+        <p>Panel profesional para gestionar servicios SMM. Automatiza pedidos, controla balances y escala tu negocio.</p>
+
+        <div class="auth-pills">
+            <span>🚀 Automatización</span>
+            <span>💸 Monetización</span>
+            <span>📊 Control total</span>
+        </div>
+    </div>
+
+    <div class="auth-panel">
+        <form class="auth-card" method="post">
+            <h2>Iniciar sesión</h2>
+            <p>Accede a tu panel</p>
+
+            <?php if($error):?>
+                <div class="alert error"><?=htmlspecialchars($error)?></div>
+            <?php endif;?>
+
+            <div class="stack-form">
+                <input name="email" type="email" placeholder="Correo electrónico" required>
+                <input name="password" type="password" placeholder="Contraseña" required>
+                <button class="btn primary" type="submit">Entrar</button>
+            </div>
+
+            <a class="auth-link" href="/register.php">Crear cuenta</a>
+            <div class="auth-small">Codexx3 © Panel SaaS</div>
+        </form>
+    </div>
+
+</div>
+
+</body>
+</html>
