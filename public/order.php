@@ -10,7 +10,8 @@ $user = current_user($db);
 $msg = '';
 $error = '';
 
-$services = db_all($db, 'SELECT id,name,rate,min,max,category FROM services WHERE active=1 ORDER BY category ASC, name ASC');
+$services = db_all($db, 'SELECT id,name,description,rate,min,max,category FROM services WHERE active=1 ORDER BY category ASC, name ASC');
+$categories = array_values(array_unique(array_map(fn($s) => $s['category'] ?? 'General', $services)));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $service_id = (int)($_POST['service_id'] ?? 0);
@@ -34,12 +35,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $cost = calc_price((float)($service['cost_rate'] ?? 0), $qty);
         $profit = round($price - $cost, 4);
         $userId = (int)($user['id'] ?? $_SESSION['user_id']);
-        $orderId = 0;
 
         try {
             $pdo = $db->pdo();
             $pdo->beginTransaction();
-
             $stmt = $pdo->prepare('SELECT balance FROM users WHERE id=? FOR UPDATE');
             $stmt->execute([$userId]);
             $freshUser = $stmt->fetch();
@@ -79,27 +78,49 @@ panel_header('Nuevo pedido','order',$user);
         <h1>Nuevo pedido</h1>
         <p class="muted">Balance disponible: <strong><?= money($user['balance'] ?? 0) ?></strong></p>
     </div>
-    <a class="btn secondary" href="/services.php">Ver servicios</a>
+    <a class="btn secondary" href="/orders.php">Ver historial</a>
 </div>
 
-<section class="main-card form-card">
+<section class="main-card order-pro-card">
     <h2>Crear orden</h2>
+    <p class="muted">Selecciona categoría, servicio, link y cantidad. El precio se calcula automáticamente.</p>
+
     <?php if($msg): ?><div class="alert success"><?= e($msg) ?></div><?php endif; ?>
     <?php if($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
 
     <form method="post" class="stack-form" id="orderForm">
-        <label>Servicio</label>
-        <select name="service_id" id="serviceSelect" required>
-            <option value="">Selecciona un servicio</option>
-            <?php foreach($services as $s): ?>
-                <option value="<?= (int)$s['id'] ?>" data-rate="<?= e($s['rate']) ?>" data-min="<?= e($s['min'] ?? 1) ?>" data-max="<?= e($s['max'] ?? '') ?>">
-                    <?= e(($s['category'] ?? 'General').' - '.$s['name']) ?> — <?= money($s['rate']) ?>/1000
-                </option>
-            <?php endforeach; ?>
-        </select>
+        <div class="form-grid">
+            <div>
+                <label>Categoría</label>
+                <select id="categorySelect" required>
+                    <option value="">Selecciona una categoría</option>
+                    <?php foreach($categories as $cat): ?>
+                        <option value="<?= e($cat) ?>"><?= e($cat) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
+                <label>Servicio</label>
+                <select name="service_id" id="serviceSelect" required disabled>
+                    <option value="">Primero selecciona una categoría</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="service-details" id="serviceDetails">
+            <div><span>ID servicio</span><strong id="detailId">-</strong></div>
+            <div><span>Precio / 1000</span><strong id="detailRate">$0.00</strong></div>
+            <div><span>Mínimo</span><strong id="detailMin">-</strong></div>
+            <div><span>Máximo</span><strong id="detailMax">-</strong></div>
+        </div>
+
+        <div class="description-box">
+            <span>Descripción del servicio</span>
+            <p id="serviceDescription">Selecciona un servicio para ver instrucciones, detalles y restricciones.</p>
+        </div>
 
         <label>Link</label>
-        <input name="link" type="url" placeholder="https://..." required>
+        <input name="link" type="url" placeholder="https://instagram.com/..." required>
 
         <div class="form-grid">
             <div>
@@ -118,21 +139,60 @@ panel_header('Nuevo pedido','order',$user);
 </section>
 
 <script>
+const services = <?= json_encode($services, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+const categorySelect = document.getElementById('categorySelect');
 const serviceSelect = document.getElementById('serviceSelect');
 const quantityInput = document.getElementById('quantityInput');
 const totalPrice = document.getElementById('totalPrice');
 const limitsText = document.getElementById('limitsText');
-function updatePrice(){
-    const option = serviceSelect.options[serviceSelect.selectedIndex];
-    const rate = parseFloat(option?.dataset?.rate || 0);
-    const qty = parseInt(quantityInput.value || 0, 10);
-    const min = option?.dataset?.min || '';
-    const max = option?.dataset?.max || '';
-    const total = rate && qty ? (rate * qty / 1000) : 0;
-    totalPrice.textContent = '$' + total.toFixed(2);
-    limitsText.textContent = serviceSelect.value ? ('Min: ' + min + (max ? ' | Max: ' + max : '')) : 'Selecciona un servicio';
+const detailId = document.getElementById('detailId');
+const detailRate = document.getElementById('detailRate');
+const detailMin = document.getElementById('detailMin');
+const detailMax = document.getElementById('detailMax');
+const serviceDescription = document.getElementById('serviceDescription');
+
+function moneyFmt(value){ return '$' + (parseFloat(value || 0)).toFixed(2); }
+function selectedService(){ return services.find(s => String(s.id) === String(serviceSelect.value)); }
+function fillServices(){
+    const cat = categorySelect.value;
+    serviceSelect.innerHTML = '<option value="">Selecciona un servicio</option>';
+    const list = services.filter(s => String(s.category || 'General') === String(cat));
+    list.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = '#' + s.id + ' - ' + s.name + ' — $' + parseFloat(s.rate || 0).toFixed(2) + '/1000';
+        serviceSelect.appendChild(opt);
+    });
+    serviceSelect.disabled = !cat;
+    resetDetails();
 }
-serviceSelect.addEventListener('change', updatePrice);
+function resetDetails(){
+    detailId.textContent='-'; detailRate.textContent='$0.00'; detailMin.textContent='-'; detailMax.textContent='-';
+    serviceDescription.textContent='Selecciona un servicio para ver instrucciones, detalles y restricciones.';
+    updatePrice();
+}
+function updateDetails(){
+    const s = selectedService();
+    if(!s){ resetDetails(); return; }
+    detailId.textContent = '#' + s.id;
+    detailRate.textContent = moneyFmt(s.rate);
+    detailMin.textContent = s.min || '1';
+    detailMax.textContent = s.max || '-';
+    serviceDescription.textContent = s.description || 'Sin descripción. Asegúrate de colocar un link público y una cantidad válida.';
+    quantityInput.min = s.min || 1;
+    if(s.max){ quantityInput.max = s.max; }
+    updatePrice();
+}
+function updatePrice(){
+    const s = selectedService();
+    const qty = parseInt(quantityInput.value || 0, 10);
+    const rate = s ? parseFloat(s.rate || 0) : 0;
+    const total = rate && qty ? (rate * qty / 1000) : 0;
+    totalPrice.textContent = moneyFmt(total);
+    limitsText.textContent = s ? ('Min: ' + (s.min || 1) + ' | Max: ' + (s.max || '-')) : 'Selecciona un servicio';
+}
+categorySelect.addEventListener('change', fillServices);
+serviceSelect.addEventListener('change', updateDetails);
 quantityInput.addEventListener('input', updatePrice);
 </script>
 
