@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["php82", "php82Extensions.pdo_mysql"]
+nixPkgs = ["php82Packages.php"]
 
 [phases.build]
 cmds = ["mkdir -p logs"]
