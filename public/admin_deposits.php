@@ -1,0 +1,19 @@
+<?php
+require_once __DIR__.'/../app/config/session.php';
+require_once __DIR__.'/../app/config/database.php';
+require_once __DIR__.'/../app/lib/helpers.php';
+requireAdmin();
+$db=new Database();$user=current_user($db);$msg='';$error='';
+if($_SERVER['REQUEST_METHOD']==='POST'){
+  $id=(int)($_POST['id']??0);$action=$_POST['action']??'';
+  if($id<=0){$error='Recarga inválida.';}
+  else{try{$pdo=$db->pdo();$pdo->beginTransaction();$st=$pdo->prepare('SELECT * FROM deposits WHERE id=? FOR UPDATE');$st->execute([$id]);$d=$st->fetch();if(!$d){$pdo->rollBack();$error='No encontrada.';}elseif($d['status']!=='pending'){$pdo->rollBack();$error='Ya fue procesada.';}elseif($action==='approve'){$pdo->prepare('UPDATE users SET balance=balance+? WHERE id=?')->execute([(float)$d['amount'],(int)$d['user_id']]);$pdo->prepare('UPDATE deposits SET status=? WHERE id=?')->execute(['completed',$id]);$pdo->commit();$msg='Recarga aprobada.';}elseif($action==='reject'){$pdo->prepare('UPDATE deposits SET status=? WHERE id=?')->execute(['rejected',$id]);$pdo->commit();$msg='Recarga rechazada.';}else{$pdo->rollBack();$error='Acción inválida.';}}catch(Throwable $e){if(isset($pdo)&&$pdo->inTransaction())$pdo->rollBack();log_action('Admin deposits: '.$e->getMessage());$error='Error procesando recarga.';}}
+}
+$status=trim($_GET['status']??'');$where='WHERE 1=1';$params=[];if($status!==''){$where.=' AND d.status=?';$params[]=$status;}
+$rows=db_all($db,"SELECT d.*,u.email FROM deposits d LEFT JOIN users u ON u.id=d.user_id {$where} ORDER BY d.id DESC LIMIT 250",$params);
+$total=db_one($db,'SELECT COALESCE(SUM(amount),0) t FROM deposits WHERE status="completed"')['t']??0;$pending=db_one($db,'SELECT COUNT(*) c FROM deposits WHERE status="pending"')['c']??0;
+panel_header('Admin Recargas','admin',$user);
+?>
+<div class="topbar"><div><h1>Admin recargas</h1><p class="muted">Aprobar y rechazar pagos manuales.</p></div><a class="btn secondary" href="/admin.php">Volver admin</a></div><?php if($msg):?><div class="alert success"><?=e($msg)?></div><?php endif;?><?php if($error):?><div class="alert error"><?=e($error)?></div><?php endif;?>
+<div class="stats"><div class="stat-card"><span>Aprobado</span><strong><?=money($total)?></strong></div><div class="stat-card"><span>Pendientes</span><strong><?= (int)$pending?></strong></div></div>
+<section class="main-card table-card"><h2>Recargas</h2><form method="get" class="filters-row"><select name="status"><option value="">Todos</option><option value="pending" <?=$status==='pending'?'selected':''?>>pending</option><option value="completed" <?=$status==='completed'?'selected':''?>>completed</option><option value="rejected" <?=$status==='rejected'?'selected':''?>>rejected</option></select><button class="btn secondary">Filtrar</button><a class="btn secondary" href="/admin_deposits.php">Limpiar</a></form><div class="table-wrap"><table><thead><tr><th>ID</th><th>Usuario</th><th>Monto</th><th>Método</th><th>Nota</th><th>Estado</th><th>Fecha</th><th>Acción</th></tr></thead><tbody><?php foreach($rows as $d):?><tr><td>#<?= (int)$d['id']?></td><td><?=e($d['email']??'-')?></td><td><?=money($d['amount'])?></td><td><?=e($d['method'])?></td><td><?=e($d['note'])?></td><td><span class="badge <?=e($d['status'])?>"><?=e($d['status'])?></span></td><td><?=e($d['created_at'])?></td><td><?php if($d['status']==='pending'):?><form method="post" class="inline-form"><input type="hidden" name="id" value="<?= (int)$d['id']?>"><button class="btn mini primary" name="action" value="approve">Aprobar</button><button class="btn mini danger" name="action" value="reject">Rechazar</button></form><?php endif;?></td></tr><?php endforeach;?></tbody></table></div></section><?php panel_footer(); ?>
