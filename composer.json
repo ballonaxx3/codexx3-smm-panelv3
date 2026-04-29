@@ -1,0 +1,13 @@
+{
+  "name": "codexx3/smm-panel-v3",
+  "description": "Codexx3 SMM Panel PHP + MySQL for Railway",
+  "type": "project",
+  "require": {
+    "php": "^8.2",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*"
+  },
+  "scripts": {
+    "start": "php -S 0.0.0.0:$PORT -t public"
+  }
+}
