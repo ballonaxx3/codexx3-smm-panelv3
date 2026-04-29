@@ -1,0 +1,8 @@
+[phases.setup]
+aptPkgs = ["php", "php-mysql"]
+
+[phases.build]
+cmds = ["mkdir -p logs"]
+
+[start]
+cmd = "php -S 0.0.0.0:$PORT -t public"
